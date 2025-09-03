@@ -1,0 +1,85 @@
+---
+title: '"Tabla 2" Framinghan'
+author: "Enrique Lopez Martinez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Para este proyecto se realizara una "Tabla 2", la cual muestra asociaciones ajustadas multivariadas con el resultado de las variables resumidas en la Tabla 1, para este caso se tomara la variable 'edad' como variable independiente y se haran comparaciones con otras variables y se realizara se respectiva regresion logistica y se determinaran los coeficiente beta para el modelo logistico.  
+
+Cargamos la base de datos de "Framinghan heart study" para el ejemplo:
+
+```{r base de datos,include=TRUE}
+fram<- read.csv("framingham_dataset.csv", header = TRUE)
+colnames(fram)
+```
+Para el ejemplo, como varaibles dependientes, se usaran las variables: 'sex','diabetes','glucose','stroke','cigpday'.'hyperten','totchol','heartrte' y 'bmi' . Primero se haran comparaciones en graficas
+
+```{r pressure, echo=FALSE ,include=TRUE}
+#definimos las variables:
+age <- fram$age 
+sex <- factor(fram$sex,levels = c(1,2) , labels = c("Male","Female"))
+glucose <- fram$glucose #mg/dL
+diabetes <- factor(fram$diabetes,levels = c(0,1) , labels = c("no","si"))
+stroke <- factor(fram$stroke,levels = c(0,1) , labels = c("no","si"))
+cigarettes <- fram$cigpday #cigarettes per day
+hyperten <- factor(fram$hyperten,levels = c(0,1) , labels = c("no","si"))
+cholesterol <- fram$totchol #Total cholesterol (mg,dL)
+bmi <- fram$bmi #Body mass index
+rate <- fram$heartrte # Heart rate (beats per minute)
+
+#se grafican las variables 
+plot(age,glucose ,main = "Scatter plot: Age vs Glucose", xlab = "Age (Years)", ylab = "Glucose (mg/dL)")
+
+plot(age,cigarettes,main = "Scatter plot: Age vs Cigarettes", xlab = "Age (Years)", ylab = "Cigarettes per day")
+
+plot(age,cholesterol,main = "Scatter plot: Age vs Cholesterol", xlab = "Age (Years)", ylab = "Cholesterol (mg/dL)")
+
+plot(age,rate,main = "Scatter plot: Age vs Heart rate", xlab = "Age (Years)", ylab = "Heart rate (beats/min)")
+
+plot(age,bmi,main = "Scatter plot: Age vs BMI", xlab = "Age (Years)", ylab = "Body Mass Index")
+
+boxplot(age ~ sex, main = "Boxplot: Age vs Sex", xlab = "Sex (Male or Female)", ylab = "Age (Years)", col = c("lightblue" , "pink"))
+
+boxplot( age ~ diabetes , main = "Boxplot: Age vs Diabetes", xlab = "Diabetes (yes or No)", ylab = "Age (Years)", col= c("lightgreen","coral"))
+
+boxplot( age~hyperten, main = "Boxplot: Age vs Hyperten", xlab = "Hyperten (yes or No)", ylab = "Age (Years)",col= c("lightgreen","coral"))
+
+boxplot( age ~ stroke,  main = "Boxplot Age vs Stroke", xlab = "Stroke (yes or No)", ylab = "Age (Years)",col= c("lightgreen","coral"))
+```
+Procedemos hacer los modelos logisticos para predecir la probabilidad de infarto de miocardio  o enfermedad cardiaca coronaria mortal 'mi_fchd' y su respectiva tabla 2 con las variables mencionadas
+```{r,echo=TRUE,include=TRUE,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(broom)
+fchd <- factor(fram$mi_fchd , levels = c(0,1) , labels = c("no","si"))
+modelo <- glm(fchd ~ age + sex + glucose + diabetes + hyperten + cigarettes + stroke + rate + cholesterol, data = fram, family = binomial(link = "logit"))
+summary(modelo)
+```
+```{r}
+tabla_resultados <- tidy(modelo, conf.int = TRUE, exponentiate = TRUE) %>%
+  mutate(across(c(estimate, conf.low, conf.high), ~round(., 2))) %>%
+  mutate(p.value = ifelse(p.value < 0.001, "<0.001", round(p.value, 3))) %>%
+  select(term, estimate, std.error, p.value, conf.low, conf.high)
+
+knitr::kable(tabla_resultados, 
+             col.names = c("Variable", "OR", "Error Estándar", "p-valor", "IC 95% (bajo)", "IC 95% (alto)"),
+             caption = " Tabla 2: Modelo de regresión logística para predecir enfermedad de miocardio")
+
+
+```
+
+Finalmente nuestro modelo quedaria de la siguiente forma:
+
+$$ logit(L) = -4.232 +  0.026*age  -1.289*sex +  0.003*glucose + 0.794*diabetes + 0.611*hyperten + 0.008*cigpday$$
+$$
++ 0.360*stroke + 0.002*rate +  0.007*cholesterol $$
+
+Una interpretacion del modelo es que, dado a los coeficientes que se muestran y las OR obtenidas, los hombres en comparacion con las mujeres tienen mas probabilidad de sufrir infarto de miocardio  o enfermedad cardiaca coronaria mortal, tambien estas probabilidades aumentan con la hipertension y la diabetes, al igual que fumar varios cigarrillos por dia y tener colesterol elevado.
+
+Cuando el OR (Odd Ratio) es igual a 1 nos indica que no aumentan ni disminuyen el riesgo de la enfermedad cardíaca en estudio, en este caso las variables glucosa y heart rate presentan esta caracteristica, por otra parte el sexo presenta un OR de 0.21 lo cual indica probabilida baja (el grupo de mujeres con respecto al primer grupo que son los hombres), tiene una reducción del 79% en la probabilidad relativa de presentar infarto de miocardio, y para las demas variables que presentan OR>1 indican un mayor riesgo de infarto de miocardio, en este caso hay 121% mas de probabilidad de que una persona diabetica presente un infarto de miocardio que una persona que no es diabetica, de manera analoga una persona con hypertension presenta mas probabilidades del mismo suceso al igual que una persona con stroke positivo.
+
+Una ultima cuestion seria la variable colesterol que nos muestra un OR>1 pero clinicamente irrevelante, por cada 1 mg/dL de aumento del colesterol tiene un aumento del 1%, lo mismo sucede con los cigarrillos fumados por dia, otro caso puede ser la edad que aumenta 3% por año, aunque el efecto anual parece pequeño, se acumula con la edad, volviéndose clínicamente importante en rangos amplios (ejemplo en adultos mayores) actuando como un efecto graudal y constante.

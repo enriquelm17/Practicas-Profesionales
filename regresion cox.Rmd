@@ -1,0 +1,66 @@
+---
+title: "Regresion Cox"
+author: "Enrique Lopez Martinez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+La regresión de Cox se utiliza en el análisis del tiempo de supervivencia para determinar la influencia de distintas variables en el tiempo de supervivencia. Las variables pueden ser cualquier mezcla de datos continuos, binarios o categóricos. A continuación, se utiliza el modelo de riesgos proporcionales de Cox para determinar el efecto sobre el tiempo de supervivencia. La regresión de Cox nos permite determinar los efectos de múltiples variables independientes sobre un resultado en el tiempo, ya sea para probar hipótesis sobre las variables independientes o para construir un modelo predictivo.
+
+```{r, echo = TRUE ,message=FALSE , warning=FALSE }
+framin<- read.csv("framingham_dataset.csv", header = TRUE)
+library("survival")
+library("survminer")
+colnames(framin)
+```
+
+Las variables mas importantes en este caso serian la variable 'death' que es el estatus del paciente (vivo o muerto) y el 'timedth' que nos indica cuantos dias pasaron desde el examen inicial hasta la muerte o de ultimo contacto con el paciente y como factores tomaremos el sexo, la edad, colesterol y la hipertension 
+
+```{r regresion cox, echo=TRUE}
+res.cox <- coxph(Surv(timedth, death) ~ sex + age + totchol + hyperten, data = framin)
+res.cox
+```
+En esta regresion, los datos nos indican que en la variable sex, ser mujer tiene un menor riesgo en comparacion con los hombres, en la edad el coeficiente positivo indica que con mayor edad mayor riesgo por cada año aumenta 1.06 el HR (Hazard ratio o taza de riesgo) dando asi la edad como predictor muy significativo estadisticamente, al igual que la edad el colesterol conforme mayor sea mayor sera el riesgon este caso por cada unidad de colesterol el riesgo aumenta 1% aunque pequeño es el efecto el p-value lo hace estadisticamente significativo y finalmente la hipertension es otro predictor significativo en comparacion de las personas que no tienen la enfermedad, aunque todas las variables son significativas las mas fuertes son la edad y el sexo. Ahora se realizara la misma tarea pero con datos imputados con el metodo MICE.
+```{r regresion con datos imputados, echo = TRUE, include=FALSE,message=FALSE , warning=FALSE}
+library(mice)
+framin_imp <- mice(framin)
+
+framin_comp <- complete(framin_imp)
+```
+```{r echo = TRUE ,message=FALSE , warning=FALSE}
+res.cox <- coxph(Surv(timedth, death) ~ sex + age + totchol + hyperten, data = framin_comp)
+res.cox
+```
+Para este caso todos los coeficientes aumentaron, pero el aumento mas notable se vio en la hipertension lo cual aumenta nuestro HR mas que en los datos no imputados, pero las lecturas sobre los efectos que tienen estas variables como predictor se mantienen iguales. 
+```{r Tabla de resultados, echo = TRUE ,message=FALSE , warning=FALSE}
+covariates <- c("age", "sex",  "totchol", "hyperten")
+univ_formulas <- sapply(covariates,
+                        function(x) as.formula(paste('Surv(timedth, death)~', x)))
+                        
+univ_models <- lapply( univ_formulas, function(x){coxph(x, data = framin_comp)})
+# Extract data 
+univ_results <- lapply(univ_models,
+                       function(x){ 
+                          x <- summary(x)
+                          p.value<-signif(x$wald["pvalue"], digits=2)
+                          wald.test<-signif(x$wald["test"], digits=2)
+                          beta<-signif(x$coef[1], digits=2);#coeficient beta
+                          HR <-signif(x$coef[2], digits=2);#exp(beta)
+                          HR.confint.lower <- signif(x$conf.int[,"lower .95"], 2)
+                          HR.confint.upper <- signif(x$conf.int[,"upper .95"],2)
+                          HR <- paste0(HR, " (", 
+                                       HR.confint.lower, "-", HR.confint.upper, ")")
+                          res<-c(beta, HR, wald.test, p.value)
+                          names(res)<-c("beta", "HR (95% CI for HR)", "wald.test", 
+                                        "p.value")
+                          return(res)
+                          #return(exp(cbind(coef(x),confint(x))))
+                         })
+res <- t(as.data.frame(univ_results, check.names = FALSE))
+as.data.frame(res)
+```

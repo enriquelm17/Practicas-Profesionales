@@ -1,0 +1,92 @@
+---
+title: "Tabla 1 datos Framingham"
+author: "Enrique Lopez Martinez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(table1)
+```
+#Introduccion
+En este documento se realizara una "Tabla 1" sobre "Framingham Heart Study", el cual trata sobre el estudio de las enfermedades cardiovasculares de una poblacion en Framinghan, Massachusetts. Es una investigacion de las mas durareas en la historia de la epidemiologia, la cual su proposito fue identificar factores de riesgo  en enfermedades cardiovasculares a largo plazo de una cohorte de personas.
+El data set que se manejara para este proyecto sera un subconjunto mas pequeño de datos que la original, conteniendo asi 4240 observaciones con 16 variables.
+
+
+
+```{r Importacion de datos}
+#En esta seccion se importaran la base de datos
+
+FHS <- read.csv("framingham_dataset.csv", header = TRUE)
+head(FHS, 10)
+
+```
+
+Como primer paso daremos categoria a variables binarias, por ejemplo, para la variable "sex" unicamente arroja valores 2 y 1, las cuales representan femenino y masculino respectivamente, se realizara el mismo ejercicio para las demas variables con la misma situacion de valores binarios:
+
+```{r pressure, echo=TRUE , include=TRUE}
+#Se generan intervalos de la edad, estas se escojieron a partir del
+#primer y tecer quartil, teniendo tres intervalos de edades
+edad <- cut(FHS$age ,
+                        breaks = c(-Inf, 48, 62, Inf),
+                        labels = c("menos de 48 años", "De 48 a 62 años" , " mas de 62 años"))
+
+sexo <- factor(FHS$sex, levels = c(1,2),
+               labels = c("Male", "Female"))
+educacion <- factor(FHS$educ,
+                    levels =c(1,2,3,4),
+                    labels = c("Some high school", "High school diploma/GED", "Some college, vocational school", "College (BS,BA) degree or more"))
+
+prevelant_stroke <- factor(FHS$prevstrk, levels = c(0,1),
+                           labels = c("Free of disease","Prevelant disease"))
+prevelant_hyp <- factor(FHS$prevhyp, levels = c(0,1),
+                           labels = c("Free of disease","Prevelant disease"))
+diabetic <- factor(FHS$diabetes, levels = c(0,1),
+                           labels = c("No a diabetic","Diabetic"))
+
+#variables a comparar con los estratos
+variable_fchd <- factor(FHS$mi_fchd, levels = c(0,1),
+                 labels = c("Hospitalized MI - Fatal CHD","Angina"))
+angina_pecho <- factor(FHS$angina, levels = c(0,1), labels =  c("No","Yes") )
+#Se colocan las etiquetas para cada variable
+label(FHS$age) <- "Age(Years)"
+label(sexo) <- "Sex"
+label(edad) <- "Age"
+label(educacion) <- "education"
+label(prevelant_stroke) <- "Prevelant Stroke"
+label(prevelant_hyp) <- "Prevelant Hipertensive"
+label(diabetic) <- "Diabetes"
+label(variable_fchd) <- "Hospitalized MI - Fatal CHD"
+label(angina_pecho) <- "Angina"
+
+
+```
+
+En esta Tabla 1, se comparan los estratos con la variable `my_fchd` y la variable `angina` las cuales representan las tasas de incidencias de angina de pecho y de la cardiopatía isquémica fatal hospitalizada
+```{r , include=TRUE}
+table1(~ sexo + age + edad + educacion + prevelant_hyp + prevelant_stroke + diabetic | variable_fchd*angina_pecho,
+       data = FHS,
+       render.continuous = c(.="Mean (SD)", .="Median [Q1, Q3]"),
+       overall = FALSE,
+       caption = "Specific Angina and Hospitalized MI-Fatal CHD Incidence Rates")
+```
+Para finalizar se realizara una ultima comparacion con los accidentes cerebrovasculares y enfermedades cardiovaculares (mortales y no mortales).
+```{r}
+strk <- factor(FHS$stroke, levels = c(0,1),
+              labels = c("CVD", "Stroke"))
+
+carvd <- factor(FHS$cvd, levels = c(0,1), labels = c("event did not occur", "event did occur"))
+
+label(strk) <- "Stroke"
+label(carvd) <-  "CVD"
+
+table1(~ sexo + age + edad + educacion + prevelant_hyp + diabetic | strk*carvd,
+       data = FHS,
+       render.continuous = c(.="Mean (SD)", .="Median [Q1, Q3]"),
+       overall = FALSE,
+       caption = "Specific Stroke and Cardiovascular Disease (Fatal and Non-Fatal) Incidence Rates")
+
+
+```
+

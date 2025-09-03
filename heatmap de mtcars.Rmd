@@ -1,0 +1,39 @@
+---
+title: "heat map mtcars"
+author: "Enrique Lopez Martinez"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Heat map de mtcars
+Exportamos primero los datos mtcars:
+
+```{r Dataframe , include=TRUE}
+#Primero convertimos los datos en una matriz:
+data("mtcars")
+datos <- as.matrix(mtcars)
+heatmap(datos)
+```
+
+Para una mejor visualizacion, se utilizara la funcion `scale`, tambien para ver el dendograma como la matriz en bruto y no reordenada ocuparemos la funcion `Colv`.
+
+```{r mejora, include=TRUE}
+
+heatmap(datos, Colv = NA, scale="column")
+
+```
+
+Por ultimo damos el estilo cambiando la paleta de colores:
+
+```{r Paleta de colores, include=TRUE}
+library(RColorBrewer)
+
+heatmap(datos, scale="column", Colv = NA, 
+        col= brewer.pal(n = 12,  name = 'Set3'))
+
+```
+
