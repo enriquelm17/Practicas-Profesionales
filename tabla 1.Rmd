@@ -1,0 +1,78 @@
+---
+title: '"Tabla 1"'
+author: "Enrique Lopez Martinez"
+date: "Fecha de revision: 28 de abril del 2024 "  
+output:
+  html_document:
+    df_print: paged
+---
+
+Introduccion
+
+Para el presente proyecto se realizara una "tabla 1" de la base de datos de mtcars, la cual es una tabla de estadisticas descriptivas tales como la media, la desviacion estandar, minimos y maximos, entre otras, esta tabla es comunmente utilizada en trabajos de estudio clinico y de epidemiologia.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+```{r,  message=FALSE , warning=FALSE}
+data(mtcars)
+
+library(table1)
+```
+
+Para empezar se propone utilizar la funcion "table1" de R para la tabla de frecuencia de la base de datos, poniendo como primer codigo las etiquetas de cada variable con la funcion `label`:
+
+```{r Etiquetas, include=TRUE}
+label(mtcars$mpg) <- "Millas por galón" #mpg
+label(mtcars$cyl) <- "Número de cilindros"
+label(mtcars$disp) <- "Desplazamiento (cu.in)"
+label(mtcars$hp) <- "Caballos de fuerza"
+label(mtcars$drat) <- "Relación del eje trasero"
+label(mtcars$wt) <- "Peso (1000 lbs)"
+label(mtcars$qsec) <- "Tiempo 1/4 de milla"
+label(mtcars$vs) <- "Motor (0 = V, 1 = Recto)"
+label(mtcars$am) <- "Transmisión (0 = Auto, 1 = Manual)"
+label(mtcars$gear) <- "Número de marchas"
+label(mtcars$carb) <- "Número de carburadores"
+
+```
+
+Para una mejor visualizacion cambiamos algunas variables a factores la cual nos dara mas claridad en los datos y nos incluira algunos porcentajes:
+
+```{r Factores , include=TRUE}
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$vs <- factor(mtcars$vs, levels = c(0,1), labels = c("V", "Recto"))
+mtcars$am <- factor(mtcars$am, levels = c(0,1), labels = c("Automático", "Manual"))
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+```
+
+------------------------------------------------------------------------
+
+Para finalizar ejecutamos los datos con la funcion `table1`:
+
+```{r Tabla1 , include=TRUE}
+
+
+table1(~ mpg + cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb,        data = mtcars , overall = "Total",       caption = "Tabla 1. Características de los vehículos en mtcars",
+       render.continuous=c(.="Mean (SD)", .="Median [Q1, Q3]"))
+
+```
+
+------------------------------------------------------------------------
+
+Otra forma mas rapida de generar una tabla mas sencilla es utilizando la funcion `summary` y con la funcion `kable` de la libreria `knitr` da una mejor visualizacion de nuestra base de datos:
+
+```{r Summary, include=TRUE,message=FALSE,warning=FALSE}
+
+tabla <- summary(mtcars)
+library(knitr)
+kable(tabla, caption = "Resumen del Data Frame", align = "l")
+```
+
+Conclusiones:
+
+La Tabla 1 es una herramienta fundamental en la investigación científica, ya que proporciona una descripción clara y estructurada de las características basales de la población o muestra de estudio. Al ser \`mtcars\` una base de datos de ejemplo, la tabla 1 generada es mas simple de lo que podria ser una tabla de una investigacion cientifica o de reportes profesionales.
